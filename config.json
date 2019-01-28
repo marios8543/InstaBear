@@ -1,0 +1,14 @@
+{
+    "accounts":[
+        {
+            "username":"tzatzikiweeb",
+            "password":"",
+            "photo_dir":"/home/marios/Pictures/InstaBear/",
+            "interval":300,
+            "skip_login":false,
+            "cookies":{
+
+            }
+        }
+    ]
+}
