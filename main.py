@@ -1,11 +1,10 @@
-from asyncio import get_event_loop
-from data_classes import Bear
+from Bear import Bear
 from json import load
-MAIN_LOOP = get_event_loop()
+import asyncio
 
 async def main():
     configs = load(open("config.json","r"))
-    for i in configs['accounts']:
-        await Bear(i).start()
+    db_config = configs['database'] if 'database' in configs else None
+    await asyncio.wait([Bear(i,db_config).start() for i in configs['accounts']])
 
-get_event_loop().run_until_complete(main())
+asyncio.get_event_loop().run_until_complete(main())

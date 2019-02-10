@@ -5,3 +5,5 @@ FETCH_STORIES = 'https://www.instagram.com/graphql/query/?query_hash=eb1918431e9
 LOGIN = 'https://www.instagram.com/accounts/login/ajax/'
 
 HOME = 'https://www.instagram.com/'
+
+sql_queries = []
