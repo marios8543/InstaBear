@@ -6,4 +6,6 @@ LOGIN = 'https://www.instagram.com/accounts/login/ajax/'
 
 HOME = 'https://www.instagram.com/'
 
+POSTS = 'https://www.instagram.com/graphql/query/?query_hash=f2405b236d85e8296cf30347c9f08c2a&variables={}'
+
 sql_queries = []

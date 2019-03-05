@@ -1,41 +1,20 @@
-from aiohttp import ClientSession,CookieJar
+from aiohttp import ClientSession
 from time import ctime
 from os import path,makedirs
 import queries
-import aiomysql
 from json import dumps
 from asyncio import sleep
 from data_classes import User,Story
 import traceback
+from PostBear import PostBear
 
 
 class Bear:
-    def __init__(self,config,db=None):
+    def __init__(self,config,pool):
+        self.pool = pool
         self.username = config['username'] if 'username' in config else ""
         self.password = config['password'] if 'password' in config else ""
         self.userId = config['cookies']['ds_user_id']
-        self.db_host = None
-        if 'photo_dir' in config:
-            if config['photo_dir'] != "__database__":
-                if path.isdir(config['photo_dir']):
-                    self.photo_dir = config['photo_dir']
-                else:
-                    self.error("Photo directory not specified or invalid")
-                    self.userId = None
-            else:
-                if db:
-                    self.db_host = db['host'] if 'host' in db else ""
-                    self.db_user = db['user'] if 'user' in db else ""
-                    self.db_pass = db['password'] if 'password' in db else ""
-                    self.db_db = db['database'] if 'database' in db else ""
-                    self.db_port = db['port'] if 'port' in db else 3306
-                    self.photo_dir = None
-                else:
-                    self.error("Database not specified or invalid")
-                    self.userId = None
-        else:
-            self.error("Photo directory not specified or invalid")
-            self.userId = None
         self.excluded = config['excluded'] if 'excluded' in config and type(config['excluded']) is list else []
         if 'interval' in config:
             try:
@@ -44,18 +23,20 @@ class Bear:
                 self.interval = 300
         else:
             self.interval = 300
-        cookie_jar = CookieJar(unsafe=True)
-        self.client = ClientSession(cookie_jar=cookie_jar,cookies=config['cookies'])
-        self.users = []
-        self.db_connected = False
-
+        self.client = ClientSession(cookies=config['cookies'])
+        self.users = []    
     def warn(self,msg):
-        print("WARNING [{}] [{}] {}".format(ctime(),self.username,msg))
+        print("\033[1;33;40m WARNING [{}] [{}] {} \033[0m".format(ctime(),self.username,msg))
     def error(self,msg):
-        print("ERROR [{}] [{}] {}".format(ctime(),self.username,msg))
+        print("\033[1;31;40m ERROR [{}] [{}] {} \033[0m".format(ctime(),self.username,msg))
     def info(self,msg):
-        print("INFO [{}] [{}] {}".format(ctime(),self.username,msg))
+        print("INFO [{}] [{}] {} \033[0m".format(ctime(),self.username,msg))
 
+    async def _connectdb(self):
+        self.conn = await self.pool.acquire()
+        self.db = await self.conn.cursor()
+
+    """
     async def _connectdb(self):
         if self.db_host:
             self.info("Connecting to database")
@@ -67,7 +48,6 @@ class Bear:
             except Exception as e:
                 self.error(str(e))
                 self.db_connected = False
-    """
     async def _login(self):
         c = 0
         self.info("Logging in...")
@@ -122,8 +102,10 @@ class Bear:
                 for ii in i.stories:
                     count+=await ii.save_to_db(self,i)
                     sleep(3)
-                self.info("Saved {} story(s) by {}".format(count,i.name))
+                if count>0:
+                    self.info("Saved {} story(s) by {}".format(count,i.name))
 
+    """
     async def _scrapeStoriesFs(self):
         if not self.photo_dir:
             return
@@ -134,7 +116,7 @@ class Bear:
                     count+=await ii.save_to_fs(self,i)
                     sleep(3)
                 self.info("Saved {} story(s) by {}".format(count,i.name))
-
+    """
     async def start(self):
         self.info("Starting scraper...")
         await self._connectdb()
@@ -142,11 +124,8 @@ class Bear:
             try:
                 await self._fetchStories()
                 await sleep(5,loop=self.client.loop)
-                if self.db_connected:
-                    await self._scrapeStoriesDb()
-                else:
-                    await self._scrapeStoriesFs()
+                await self._scrapeStoriesDb()
             except Exception as e:
                 self.error(str(e))
-                print(traceback.format_exc())
+                #print(traceback.format_exc())
             await sleep(self.interval,loop=self.client.loop)
