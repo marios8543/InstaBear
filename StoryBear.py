@@ -24,7 +24,8 @@ class Bear:
         else:
             self.interval = 300
         self.client = ClientSession(cookies=config['cookies'])
-        self.users = []    
+        self.users = []
+        self.no_posts = config['no_posts'] if 'no_posts' in config and type(config['no_posts'])==bool else False
     def warn(self,msg):
         print("\033[1;33;40m WARNING [{}] [{}] {} \033[0m".format(ctime(),self.username,msg))
     def error(self,msg):
@@ -118,14 +119,15 @@ class Bear:
                 self.info("Saved {} story(s) by {}".format(count,i.name))
     """
     async def start(self):
-        self.info("Starting scraper...")
+        self.info("Starting storybear...")
         await self._connectdb()
         while self.userId:
             try:
                 await self._fetchStories()
-                await sleep(5,loop=self.client.loop)
+                await sleep(5)
                 await self._scrapeStoriesDb()
             except Exception as e:
                 self.error(str(e))
                 #print(traceback.format_exc())
-            await sleep(self.interval,loop=self.client.loop)
+            finally:
+                await sleep(self.interval)
