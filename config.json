@@ -1,14 +1,25 @@
 {
-    "accounts":[
+    "database": {
+        "host": "",
+        "user": "",
+        "password": "",
+        "database": "storybear",
+        "port": 3306
+    },
+    "accounts": [
         {
-            "username":"tzatzikiweeb",
-            "password":"",
-            "photo_dir":"/home/marios/Pictures/InstaBear/",
-            "interval":300,
-            "skip_login":false,
-            "cookies":{
+            "username": "tzatzikiweeb",
+            "photo_dir": "__database__",
+            "interval": 10,
+            "skip_login": false,
+            "excluded": [
 
-            }
+            ],
+            "cookies": {
+                "ds_user_id": "",
+                "sessionid": ""
+            },
+            "no_posts":false
         }
     ]
 }
