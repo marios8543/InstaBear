@@ -1,0 +1,55 @@
+<!doctype html>
+      <html lang="en">
+      <head>
+        <meta charset="utf-8">
+        <title>StoryBear Tokens</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+        table, th, td {
+          border: 1px solid black;
+        }
+        td {
+          text-align: center;
+        }
+      </style>
+      </head>
+      <body>
+        <h1>Storybear Access Tokens</h1><br><br>
+        <table>
+          <tr>
+            <th>Token</th>
+            <th>Created on</th> 
+            <th>Valid</th>
+            <th>Admin</th>
+            <th>Validate/
+              Invalidate</th>
+            <th>Add/Remove
+              Admin</th>
+          </tr>
+          {% for token in tokens %}
+          <tr>
+            <td>%% token.token %%</td>
+            <td>%% token.created %%</td>
+            <td>%% token.valid %%</td>
+            <td>%% token.admin %%</td>
+            <td><a href="/validate_token/%% token.token %%">🗑️</a></td>
+            <td><a href="/make_admin/%% token.token %%">👮</a></td>       
+          </tr>
+          {% endfor %}
+        </table>
+        <br><br>
+        <h3>Create token</h3>
+        <form action="/create_token" method="POST">
+          Token: <input id="tknInput" type="text" name="tkn">&nbsp;<button type="button" onclick="random();">Random</button><br><br>
+          Admin: <input type="checkbox" name="admin" value="1"><br><br>
+          <input type="submit">
+        </form>
+        <script>
+        function random(){
+          const max = 1000000000;
+          const min = 0;
+          document.getElementById("tknInput").value = Math.round(Math.random() * (max-min) + min );
+        }
+        </script>
+      </body>
+      </html>

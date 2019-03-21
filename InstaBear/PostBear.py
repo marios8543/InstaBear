@@ -2,7 +2,7 @@ from json import loads,dumps
 from asyncio import sleep
 from json import dumps
 import traceback
-import queries
+from InstaBear import queries
 
 class PBpost:
     def __init__(self,data,bear,uid):

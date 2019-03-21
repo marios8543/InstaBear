@@ -1,12 +1,12 @@
 from aiohttp import ClientSession
 from time import ctime
 from os import path,makedirs
-import queries
+from InstaBear import queries
 from json import dumps
 from asyncio import sleep
-from data_classes import User,Story
+from InstaBear.data_classes import User,Story
 import traceback
-from PostBear import PostBear
+from InstaBear.PostBear import PostBear
 
 
 class Bear:

@@ -1,0 +1,354 @@
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>StoryBear</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    html,body {
+    width: 100vw;
+    height: 100vh;
+    overflow-x: hidden;
+}
+
+.media-container {
+    max-width: 100%;
+    max-height: 100%;
+    width:100%;
+    height: 80%;
+}
+
+#storyControls {
+    display:inline;
+}
+
+.button {
+    border-radius: 20%;
+    background-color: violet;
+    padding: 3px 3px 3px 3px;
+}
+
+.profile_pic {
+    border-radius: 50%;
+}
+
+#metadata {
+    text-align: center;
+}
+
+.auto-item {
+  width: 206px;
+  background-color: #d0cbcb;
+  border-style: solid;
+  border-width: thin;
+  border-color: black;
+}
+.auto-item:hover {
+  background-color: #a0a0a0;
+}
+
+  </style>
+</head>
+<body>
+  <div id="mainWrap">
+    <h1>StoryBear</h1>
+    <h4>Bearin' {{ total_stories }} stories and {{ total_posts }} posts from {{ total_users }} users...</h4>
+    <hr>
+    <div v-if="current_view==0">
+      <h3>Search</h3>
+      <table style="border-collapse:separate; border-spacing:1em;">
+        <tr>
+          <td>Username:</td>
+          <td>
+            <input type="text" v-model="forms.username" placeholder="Username" v-on:input="autoc($event.target.value);">
+            <div v-for="itm in suggestions">
+              <div class="auto-item" v-on:click="autofield(itm);">{{ itm }}</div>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td>Account:</td>
+          <td><input type="text" v-model="forms.account" placeholder="Account"></td>
+        </tr>
+        <tr>
+          <td>Date:
+          </td>
+          <td>
+            From:<input type="date" v-model="forms.d_from" placeholder="From"><br>
+            To:&nbsp;&nbsp;<input type="date" v-model="forms.d_to" placeholder="To">
+          </td>
+        </tr>
+        </form>
+        <tr>
+          <td><button onclick="search();">Search</button></td>
+        </tr>
+      </table>
+    </div>
+    <div v-if="current_view==1">
+      <button onclick="goBack();">Go Back</button>&nbsp;Found {{ st_len }} stories matching your search.
+      <div class="media-container">
+        <div v-if="current_story.is_video">
+          <video controls loop autoplay class="media-container" v-bind:src="'story/'+current_story.id"></video>
+        </div>
+        <div v-else>
+          <img class="media-container" v-bind:src="'/story/'+current_story.id">
+        </div>
+      </div>
+      <br>
+      <div id="metadata">
+        <div id="storyInfo">
+          ID: {{ current_story.id }}<br>
+          Uploaded on: {{ current_story.uploaded }}<br>
+          User: <a target="_blank" v-bind:href="'https://www.instagram.com/'+current_story.user.username"><img class="profile_pic"
+              v-bind:src="current_story.user.profile_pic" width="25" height="25">&nbsp;{{ current_story.user.username }}</a><br>
+          <a target="_blank" v-bind:href="'profile_pictures/'+current_story.user.id">Profile pictures</a><br>
+          <a href="#" onclick="loadPosts();">Posts</a>&nbsp;<input type="checkbox" v-model="forms.poststalk" v-on:change="updatePostStalk()"><br>
+        </div>
+        <br>
+        <nav>
+          <button onclick="previousStory();"><</button> {{ idx+1 }}/{{ st_len }} <button onclick="nextStory();">></button>
+        </nav>
+      </div>
+    </div>
+    <div v-if="current_view==2">
+      <button onclick="goBack();">Go Back</button>&nbsp;Found {{ posts_len }} posts matching your search.
+      <div class="media-container">
+        <div v-if="current_post.is_video">
+          <video controls loop autoplay class="media-container" v-bind:src="'post/'+current_post.id"></video>
+        </div>
+        <div v-else>
+          <img class="media-container" v-bind:src="'post/'+current_post.id">
+        </div>
+      </div>
+      <br>
+      <div id="metadata">
+        <div id="storyInfo">
+          ID: {{ current_post.id }}<br>
+          Shortcode: {{ current_post.shortcode }}<br>
+          Caption: {{ current_post.caption }}<br>
+          Uploaded on: {{ current_post.uploaded }}<br>
+          User: <a target="_blank" v-bind:href="'https://www.instagram.com/'+current_story.user.username"><img class="profile_pic"
+              v-bind:src="current_story.user.profile_pic" width="25" height="25">&nbsp;{{ current_story.user.username }}</a><br>
+          <a target="_blank" v-bind:href="'/storybear.php?action=pfps&uid='+current_story.user.id">Profile pictures</a><br>
+        </div>
+        <br>
+        <nav>
+          <button onclick="previousPost();"><</button> {{ post_idx+1 }}/{{ posts_len }} <button onclick="nextPost();">></button>
+        </nav>
+      </div>
+    </div>
+  </div>
+  <script src="/static/js/jquery-3.3.1.min.js"></script>
+  <script src="/static/js/vue.min.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const app = new Vue({
+      el: "#mainWrap",
+      data: {
+        current_view: 0, //0:home/search 1:story_view 2:post_view
+        total_stories:'%% story_count %%',
+        total_users: '%% user_count %%',
+        total_posts:'%% post_count %%',
+        st_len: 0,
+        posts_len: 0,
+        post_idx: 0,
+        idx: 0,
+        current_story: {
+          id: "",
+          uploaded: "",
+          expires: "",
+          media: "",
+          ext: "",
+          is_video:false,
+          user: {
+            username: "",
+            profile_pic: ""
+          }
+        },
+        forms: {
+          username: params.has("username") ? params.get("username") : "",
+          account: params.has("account") ? params.get("account") : "",
+          d_from: params.has("d_from") ? params.get("d_from") : "",
+          d_to: params.has("d_to") ? params.get("d_to") : "",
+          poststalk:false
+        },
+        suggestions: [],
+        current_post: {
+            id: "",
+            shortcode: "",
+            timestamp: "",
+            caption: "",
+            ext: "",
+            is_video:false
+        }
+      }
+    });
+
+    var stories = [];
+    var posts = [];
+    //var autoidx = 0;
+
+    if(params.has("username") || params.has("account") || params.has("d_from") || params.has("d_to")) search();
+    
+
+    function search() {
+      $.ajax({
+        type: "POST",
+        url: "search",
+        data: {
+          'username': app.forms.username,
+          'account': app.forms.account,
+          'date_from':app.forms.d_from,
+          'date_to':app.forms.d_to
+        },            
+        success: function (data) {
+          stories = data;
+          app.st_len = data.length;
+          loadStory(app.idx = 0);
+        },
+        dataType: "json"
+      }).fail(function (xhr, text, err) { alert(`${text} - ${err}`) });
+    }
+
+    function autoc(val){
+      if(val.length>=3){
+        $.ajax({
+        type: "GET",
+        url: "usr_autoc",
+        data: {
+          'input':val
+        },
+        success: function (data) {
+          app.suggestions = data;
+        },
+        dataType: "json"
+        });
+      }
+      else app.suggestions = [];
+    }
+
+    function autofield(v){
+      app.suggestions = [];
+      app.forms.username = v;
+    }
+
+    function loadPosts() {
+      $.ajax({
+        type: "GET",
+        url: "posts",
+        data: {
+          'username':app.current_story.user.username
+        },
+        success: function(data) {
+          posts = data;
+          app.posts_len = data.length;
+          loadPost(app.post_idx = 0);
+        },
+        dataType: "json"
+      });
+    }
+
+    function loadPost(i = null) {
+      if (i != null){
+        app.post_idx = i;
+      }
+      let pt = posts[app.post_idx];
+      app.current_post.id = pt.id;
+      app.current_post.shortcode = pt.shortcode;
+      app.current_post.ext = pt.ext;
+      app.current_post.caption = pt.caption;
+      if (pt.ext == "mp4") app.current_post.is_video = true; else app.current_post.is_video = false;
+      let uploaded = new Date(parseInt(pt.timestamp) * 1000);
+      app.current_post.timestamp = `${uploaded.getDate()}/${uploaded.getMonth()}/${uploaded.getFullYear()} ${uploaded.getHours()}:${uploaded.getMinutes()}`;
+      app.current_view = 2;
+    }
+
+    function loadStory(i = null) {
+      if (i != null) {
+        app.idx = i;
+      }
+      let st = stories[app.idx];
+      app.current_story.id = st.id;
+      let uploaded = new Date(parseInt(st.uploaded) * 1000);
+      app.current_story.uploaded = `${uploaded.getDate()}/${uploaded.getMonth()}/${uploaded.getFullYear()} ${uploaded.getHours()}:${uploaded.getMinutes()}`;
+      app.current_story.ext = st.ext;
+      app.current_story.user.username = st.name;
+      app.current_story.user.profile_pic = st.current_pfp;
+      app.current_story.user.id = st.user_id;
+      app.forms.poststalk = parseInt(st.scrape_posts);
+      if (st.ext == "mp4") app.current_story.is_video = true; else app.current_story.is_video = false;
+      app.current_view = 1;
+    }
+
+    function updatePostStalk() {
+      $.ajax({
+        type: "GET",
+        url: "post_toggle",
+        data: {
+          'username':app.current_story.user.username
+        },
+        success: function(data) {
+          app.forms.poststalk = parseInt(data);
+        },
+        dataType: "html"
+      }).fail(function(xhr,text,err){ alert(`${JSON.parse(xhr.responseText).message}`); });
+    }
+
+    function previousStory() {
+      if (app.idx - 1 >= 0 && app.idx - 1 < stories.length) {
+        app.idx--;
+      }
+      else app.idx = stories.length - 1;
+      loadStory();
+    }
+
+    function nextStory() {
+      if (app.idx + 1 >= 0 && app.idx + 1 < stories.length) {
+        app.idx++;
+      }
+      else app.idx = 0;
+      loadStory();
+    }
+
+    function previousPost() {
+      if (app.post_idx - 1 >= 0 && app.post_idx - 1 < posts.length) {
+        app.post_idx--;
+      }
+      else app.post_idx = posts.length - 1;
+      loadPost();
+    }
+
+    function nextPost() {
+      if (app.post_idx + 1 >= 0 && app.post_idx + 1 < posts.length) {
+        app.post_idx++;
+      }
+      else app.post_idx = 0;
+      loadPost();
+    }
+
+    function goBack() {
+      if(app.current_view-1>=0){
+        app.current_view--;
+      }
+    }
+
+    function toggle_posts(id){
+      
+    }
+
+    $(document).keypress(function (e) {
+      if (app.current_view == 0){
+        if (e.which == 13) search();
+        /*
+        if (e.which == 40) autodown();
+        if (e.which == 38) autoup();
+        */
+      }
+      if (app.current_view == 1) {
+        if (e.which == 37) previousStory();
+        else if (e.which == 39) nextStory();
+      }
+    });
+  </script>
+</body>
+
+</html>

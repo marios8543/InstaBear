@@ -1,8 +1,10 @@
-from StoryBear import Bear
-from PostBear import PostBear
+from InstaBear import StoryBear,PostBear
 from json import load
 import asyncio
 import aiomysql
+from uvloop import EventLoopPolicy
+
+asyncio.set_event_loop_policy(EventLoopPolicy())
 
 async def main():
     configs = load(open("config.json","r"))
@@ -18,8 +20,14 @@ async def main():
         print("Could not connect to database")
         print(str(e))
         exit(1)
-    storybears = [Bear(i,pool) for i in configs['accounts']]
-    postbears = [PostBear(i,pool) for i in storybears]
-    await asyncio.wait([bear.start() for bear in storybears+postbears])
+    if 'webserver_bind' in configs and configs['webserver_bind']:
+        from WebClient.WebClient import WebClient
+        webserver = [(await WebClient(pool,configs['webserver_bind']).init())]
+    else:
+        webserver = []
+    storybears = [StoryBear.Bear(i,pool) for i in configs['accounts']]
+    postbears = [PostBear.PostBear(i,pool) for i in storybears if not i.no_posts]
+    postbears = []
+    await asyncio.wait(webserver+[bear.start() for bear in storybears+postbears])
 
 asyncio.get_event_loop().run_until_complete(main())
