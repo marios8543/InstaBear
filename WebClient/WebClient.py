@@ -176,7 +176,9 @@ class WebClient:
 
         @self.app.route("/tokens")
         async def tokens():
-            if not (await session(request))['admin']: return await render_template("admin_error.html"),403
+            v = await session(request)
+            if not v['admin']:
+                return await render_template("admin_error.html"),403
             res = await v['db'].execute("SELECT * FROM tokens")
             if res:
                 res = await v['db'].fetchall()
@@ -184,7 +186,9 @@ class WebClient:
 
         @self.app.route("/make_admin/<token>")
         async def make_admin(token):
-            if not (await session(request))['admin']: return await render_template("admin_error.html"),403
+            v = await session(request)
+            if not v['admin']:
+                return await render_template("admin_error.html"),403
             res = await v['db'].execute("""
             CASE WHEN ( (SELECT admin FROM tokens WHERE token={0}) = 1 )
                 THEN UPDATE tokens SET admin=0 WHERE token={0};
@@ -196,7 +200,9 @@ class WebClient:
 
         @self.app.route("/validate_token/<token>")
         async def validate_token(token):
-            if not (await session(request))['admin']: return await render_template("admin_error.html"),403
+            v = await session(request)
+            if not v['admin']:
+                return await render_template("admin_error.html"),403
             res = await v['db'].execute("""
             CASE WHEN ( (SELECT valid FROM tokens WHERE token={0}) = 1 )
                 THEN UPDATE tokens SET valid=0 WHERE token={0};
