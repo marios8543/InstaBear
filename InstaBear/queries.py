@@ -8,4 +8,61 @@ HOME = 'https://www.instagram.com/'
 
 POSTS = 'https://www.instagram.com/graphql/query/?query_hash=f2405b236d85e8296cf30347c9f08c2a&variables={}'
 
-sql_queries = []
+sql_queries = [
+  """
+  CREATE TABLE `posts` (
+  `id` bigint(255) DEFAULT NULL,
+  `user_id` bigint(255) DEFAULT NULL,
+  `shortcode` varchar(255) DEFAULT NULL,
+  `caption` text,
+  `media` longblob,
+  `ext` varchar(255) NOT NULL,
+  `timestamp` bigint(20) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+""",
+  """
+  CREATE TABLE `profile_pictures` (
+  `id` varchar(255) DEFAULT NULL,
+  `user_id` bigint(20) DEFAULT NULL,
+  `media` blob,
+  `timestamp` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+""",
+  """
+  CREATE TABLE `stories` (
+  `id` bigint(20) DEFAULT NULL,
+  `uploaded` bigint(255) DEFAULT NULL,
+  `user_id` bigint(20) DEFAULT NULL,
+  `media` longblob,
+  `ext` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+""",
+  """
+  CREATE TABLE `tokens` (
+  `token` varchar(255) DEFAULT NULL,
+  `valid` tinyint(4) DEFAULT '1',
+  `admin` tinyint(4) NOT NULL DEFAULT '0',
+  `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+""",
+  """
+  CREATE TABLE `users` (
+  `id` bigint(20) DEFAULT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  `account` varchar(255) DEFAULT NULL,
+  `current_pfp` varchar(255) DEFAULT NULL,
+  `scrape_posts` tinyint(4) NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+""",
+  """ALTER TABLE `posts`
+  ADD KEY `id` (`id`);
+  """,
+  """
+  ALTER TABLE `stories`
+  ADD KEY `id` (`id`);
+  """,
+  """
+  ALTER TABLE `users`
+  ADD UNIQUE KEY `id` (`id`);
+  """
+]
