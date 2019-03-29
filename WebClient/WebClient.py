@@ -197,15 +197,16 @@ class WebClient:
             if not v['admin']:
                 return await render_template("admin_error.html"),403
             async with self.lock:
-                await self.db.execute("""
+                res = await self.db.execute("""
                 CASE WHEN ( (SELECT admin FROM tokens WHERE token={0}) = 1 )
                     THEN UPDATE tokens SET admin=0 WHERE token={0};
                     ELSE UPDATE tokens SET admin=1 WHERE token={0};
                 END CASE
                 """.format(self.conn.escape(token)))
-                res = await self.db.fetchone()
             if res:
                 return redirect("/tokens")
+            else:
+                return '',500
 
         @self.app.route("/validate_token/<token>")
         async def validate_token(token):
@@ -213,15 +214,16 @@ class WebClient:
             if not v['admin']:
                 return await render_template("admin_error.html"),403
             async with self.lock:
-                await self.db.execute("""
+                res = await self.db.execute("""
                 CASE WHEN ( (SELECT valid FROM tokens WHERE token={0}) = 1 )
                     THEN UPDATE tokens SET valid=0 WHERE token={0};
                     ELSE UPDATE tokens SET valid=1 WHERE token={0};
                 END CASE
                 """.format(self.conn.escape(token)))
-                res = await self.db.fetchone()
             if res:
                 return redirect("/tokens")
+            else:
+                return '',500
         """
         @self.app.websocket("/notifications")
         async def feed():
