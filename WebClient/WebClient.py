@@ -3,9 +3,10 @@ from quart.json import jsonify
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
 from quart.templating import render_template
-from asyncio import get_event_loop
-from aiomysql.cursors import DictCursor
+from asyncio import sleep,Lock
 from base64 import b64encode
+from json import loads
+from aiomysql.cursors import DictCursor
 
 class MyQuart(Quart):
     jinja_options = Quart.jinja_options.copy()
@@ -16,26 +17,22 @@ class WebClient:
         self.app = MyQuart(__name__,template_folder='templates/',static_folder='static/',static_url_path='/static')
         self.pool = pool
         self.bind = [bind]
-
-    async def getDb(self):
-        async with self.pool.acquire() as conn:
-            return await conn.cursor(DictCursor)
+        self.lock = Lock()
 
     async def init(self):
-        self.escape = (await self.pool.acquire()).escape
+        self.conn = await self.pool.acquire()
+        self.db = await self.conn.cursor(DictCursor)
 
         async def session(req):
-            db = await self.getDb()
             token = req.args['token'] if 'token' in req.args else req.cookies['bear_token'] if 'bear_token' in req.cookies else None
+            rt = {'valid':0,'admin':0,'token':token}
             if token:
-                res = await db.execute("SELECT valid,admin FROM tokens WHERE token=%s",(token,))
-                if res:
-                    res = await db.fetchone()
-                    if res['valid']:
-                        if res['admin']:
-                            return {'token':token,'admin':True,'db':db}
-                    else:
-                        return {'token':token,'admin':False,'db':db}
+                async with self.lock:
+                    await self.db.execute("SELECT valid,admin FROM tokens WHERE token=%s",(token,))
+                    res = await self.db.fetchone()
+                    rt = {**rt, **res}
+                    if rt['valid']:
+                        return rt
             return 0
 
         @self.app.route("/")
@@ -44,14 +41,15 @@ class WebClient:
             if not v:
                 return await render_template("auth_error.html"),403
             s_count = p_count = u_count = 0
-            res = await v['db'].execute("""
-            SELECT  
-                (SELECT COUNT(*) FROM users) users,
-                (SELECT COUNT(*) FROM stories) AS stories,
-                (SELECT COUNT(*) FROM posts) AS posts
-            """)
+            async with self.lock:
+                await self.db.execute("""
+                SELECT  
+                    (SELECT COUNT(*) FROM users) users,
+                    (SELECT COUNT(*) FROM stories) AS stories,
+                    (SELECT COUNT(*) FROM posts) AS posts
+                """)
+                res = await self.db.fetchone()
             if res:
-                res = await v['db'].fetchone()
                 u_count = res['users']
                 s_count = res['stories']
                 p_count = res['posts']
@@ -60,8 +58,8 @@ class WebClient:
         @self.app.route("/search",methods=["POST","GET"])
         async def search():
             v = await session(request)
-            username = self.escape((await request.form).get("username"))
-            account = self.escape((await request.form).get("account"))
+            username = self.conn.escape((await request.form).get("username"))
+            account = self.conn.escape((await request.form).get("account"))
             c = 0
             sql="SELECT stories.uploaded,stories.id,users.name,users.current_pfp,stories.ext,stories.user_id,users.scrape_posts FROM stories INNER JOIN users ON stories.user_id = users.id WHERE "
             if username and len(username)>2:
@@ -70,11 +68,12 @@ class WebClient:
             if account and len(account)>2:
                 sql = sql+" AND account={}".format(account) if c>0 else sql+"account={}".format(account)
                 c+=1
-            res = await v['db'].execute(sql)
+            async with self.lock:
+                await self.db.execute(sql)
+                res = await self.db.fetchall()
             if not res:
                 return jsonify({'message':'No stories found'}),404
             else:
-                res = await v['db'].fetchall()
                 for i,v in enumerate(res):
                     res[i]['id'] = str(v['id']) 
                 res = jsonify(res)
@@ -83,9 +82,10 @@ class WebClient:
         @self.app.route("/story/<sid>")
         async def story_media(sid):
             v = await session(request)
-            res = await v['db'].execute("SELECT media,ext FROM stories WHERE id=%s",(sid,))
+            async with self.lock:
+                await self.db.execute("SELECT media,ext FROM stories WHERE id=%s",(sid,))
+                res = await self.db.fetchone()
             if res:
-                res = await v['db'].fetchone()
                 ctype = "image/jpeg" if res['ext']=='jpg' else "video/mp4" if res['ext']=='mp4' else "application/octet-stream"
                 media = res['media']
                 ln = len(res['media'])
@@ -101,9 +101,10 @@ class WebClient:
             v = await session(request)
             usr = request.args.get("input")
             if len(usr)>=3:
-                res = await v['db'].execute("SELECT name FROM users WHERE name LIKE '{}'".format("%{}%".format(usr)))
+                async with self.lock:
+                    await self.db.execute("SELECT name FROM users WHERE name LIKE '{}'".format("%{}%".format(usr)))
+                    res = await self.db.fetchall()
                 if res:
-                    res = await v['db'].fetchall()
                     if len(res)>0:
                         return jsonify([i['name'] for i in res])
                     else:
@@ -119,9 +120,11 @@ class WebClient:
             if not v:
                 return await render_template("auth_error.html")
             usr = request.args.get("username")
-            res = await v['db'].execute("SELECT id,shortcode,caption,ext,timestamp FROM posts WHERE user_id=(SELECT id FROM users WHERE name=%s)",(usr,))
+            async with self.lock:
+                await self.db.execute("SELECT id,shortcode,caption,ext,timestamp FROM posts WHERE user_id=(SELECT id FROM users WHERE name=%s)",(usr,))
+                res = await self.db.fetchall()
             if res:
-                res = await v['db'].fetchall()
+                
                 for i,v in enumerate(res):
                     res[i]['id'] = str(v['id'])
                 return jsonify(res)
@@ -133,9 +136,10 @@ class WebClient:
             v = await session(request)
             if not v:
                 return await render_template("auth_error.html")
-            res = await v['db'].execute("SELECT media,ext FROM posts WHERE id=%s",(pid,))
+            async with self.lock:
+                await self.db.execute("SELECT media,ext FROM posts WHERE id=%s",(pid,))
+                res = await self.db.fetchone()
             if res:
-                res = await v['db'].fetchone()
                 ctype = "image/jpeg" if res['ext']=='jpg' else "video/mp4" if res['ext']=='mp4' else "application/octet-stream"
                 media = res['media']
                 ln = len(res['media'])
@@ -149,17 +153,18 @@ class WebClient:
         @self.app.route("/post_toggle")
         async def toggle_posts():
             if not (await session(request))['admin']: return await render_template("admin_error.html"),403
-            usr = self.escape(request.args.get("username"))
-            res = await v['db'].execute("""
-            CASE WHEN ( (SELECT scrape_posts FROM users WHERE name={0}) = 1 )
-                THEN UPDATE users SET scrape_posts=0 WHERE name={0};
-                SELECT 0;
-                ELSE UPDATE users SET scrape_posts=1 WHERE name={0};
-                SELECT 1;
-            END CASE
-            """.format(usr))
+            usr = self.conn.escape(request.args.get("username"))
+            async with self.lock:
+                await self.db.execute("""
+                CASE WHEN ( (SELECT scrape_posts FROM users WHERE name={0}) = 1 )
+                    THEN UPDATE users SET scrape_posts=0 WHERE name={0};
+                    SELECT 0;
+                    ELSE UPDATE users SET scrape_posts=1 WHERE name={0};
+                    SELECT 1;
+                END CASE
+                """.format(usr))
+                res = await self.db.fetchone()
             if res:
-                res = await v['db'].fetchone()
                 return list(res)[0],200
 
         @self.app.route("/profile_pictures/<uid>")
@@ -167,9 +172,10 @@ class WebClient:
             v = await session(request)
             if not v:
                 return await render_template("auth_error.html")
-            res = await v['db'].execute("SELECT media,timestamp FROM profile_pictures WHERE user_id=%s",(uid,))
+            async with self.lock:
+                await self.db.execute("SELECT media,timestamp FROM profile_pictures WHERE user_id=%s",(uid,))
+                res = await self.db.fetchall()
             if res:
-                res = await v['db'].fetchall()
                 for i,v in enumerate(res):
                     res[i]['media'] = b64encode(v['media']).decode("utf-8")
                 return await render_template('profile_pictures.html',pfps=res)
@@ -179,9 +185,10 @@ class WebClient:
             v = await session(request)
             if not v['admin']:
                 return await render_template("admin_error.html"),403
-            res = await v['db'].execute("SELECT * FROM tokens")
+            async with self.lock:
+                await self.db.execute("SELECT * FROM tokens")
+                res = await self.db.fetchall()
             if res:
-                res = await v['db'].fetchall()
                 return await render_template("tokens.html",tokens=res)
 
         @self.app.route("/make_admin/<token>")
@@ -189,12 +196,14 @@ class WebClient:
             v = await session(request)
             if not v['admin']:
                 return await render_template("admin_error.html"),403
-            res = await v['db'].execute("""
-            CASE WHEN ( (SELECT admin FROM tokens WHERE token={0}) = 1 )
-                THEN UPDATE tokens SET admin=0 WHERE token={0};
-                ELSE UPDATE tokens SET admin=1 WHERE token={0};
-            END CASE
-            """.format(self.escape(token)))
+            async with self.lock:
+                await self.db.execute("""
+                CASE WHEN ( (SELECT admin FROM tokens WHERE token={0}) = 1 )
+                    THEN UPDATE tokens SET admin=0 WHERE token={0};
+                    ELSE UPDATE tokens SET admin=1 WHERE token={0};
+                END CASE
+                """.format(self.conn.escape(token)))
+                res = await self.db.fetchone()
             if res:
                 return redirect("/tokens")
 
@@ -203,16 +212,45 @@ class WebClient:
             v = await session(request)
             if not v['admin']:
                 return await render_template("admin_error.html"),403
-            res = await v['db'].execute("""
-            CASE WHEN ( (SELECT valid FROM tokens WHERE token={0}) = 1 )
-                THEN UPDATE tokens SET valid=0 WHERE token={0};
-                ELSE UPDATE tokens SET valid=1 WHERE token={0};
-            END CASE
-            """.format(self.escape(token)))
+            async with self.lock:
+                await self.db.execute("""
+                CASE WHEN ( (SELECT valid FROM tokens WHERE token={0}) = 1 )
+                    THEN UPDATE tokens SET valid=0 WHERE token={0};
+                    ELSE UPDATE tokens SET valid=1 WHERE token={0};
+                END CASE
+                """.format(self.conn.escape(token)))
+                res = await self.db.fetchone()
             if res:
                 return redirect("/tokens")
-
+        """
+        @self.app.websocket("/notifications")
+        async def feed():
+            feed_list = request.args.get("feed_list")
+            if feed_list=="*":
+                data = await websocket.receive()
+                while True:
+                    for i in notif_list:
+                        for ii in notif_list[i]:
+                            notif_list[i].remove(ii)
+                            await websocket.send(ii.tojson())
+                    await sleep(2)
+            else:
+                try:
+                    feed_list = loads(feed_list)
+                except Exception:
+                    return 'Invalid feed list json',400
+                data = await websocket.receive()
+                while True:
+                    for i in feed_list:
+                        if i in notif_list:
+                            for ii in notif_list[i]:
+                                notif_list[i].remove(ii)
+                                await websocket.send(ii.tojson())
+                    sleep(2)
+        """
         cfg = Config()
         cfg.bind = self.bind
+        cfg.backlog = 1
         print("Starting server on {}".format(self.bind))
         return serve(self.app,cfg)
+

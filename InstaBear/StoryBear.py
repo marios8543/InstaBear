@@ -37,40 +37,6 @@ class Bear:
         self.conn = await self.pool.acquire()
         self.db = await self.conn.cursor()
 
-    """
-    async def _connectdb(self):
-        if self.db_host:
-            self.info("Connecting to database")
-            try:
-                self.conn = await aiomysql.connect(host=self.db_host,user=self.db_user,password=self.db_pass,db=self.db_db,port=self.db_port,autocommit=True)
-                self.db = await self.conn.cursor()
-                self.db_connected = True
-                self.info("Connected to database")
-            except Exception as e:
-                self.error(str(e))
-                self.db_connected = False
-    async def _login(self):
-        c = 0
-        self.info("Logging in...")
-        await self.client.get(queries.HOME)
-        while not self.userId and c<5:
-            async with self.client.post(queries.LOGIN,data={'username':self.username,'password':self.password,'queryParams':'"{"source":"auth_switcher"}"'}) as res:
-                if res.status==200:
-                    res = await res.json()
-                    if res['authenticated']==True:
-                        self.info("Account {} ({}) logged in successfully".format(self.username,res['userId']))
-                        self.userid = res['userId']
-                        self.excluded.append(self.username)
-                    else:
-                        self.warn("Authentication for {} failed".format(self.username))
-                else:
-                    self.error("Something went wrong with Instagram login")
-                    print(res.status)
-            c+=1
-            await sleep(10,loop=self.client.loop)
-        if c>=5:
-            return self.error("Login for {} failed 5 times. Aborting...".format(self.username))
-    """
     async def _fetchStories(self):
         if self.userId:
             async with self.client.get(queries.FETCH_STORY_REEL) as res:

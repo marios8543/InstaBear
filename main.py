@@ -27,7 +27,6 @@ async def main():
         webserver = []
     storybears = [StoryBear.Bear(i,pool) for i in configs['accounts']]
     postbears = [PostBear.PostBear(i,pool) for i in storybears if not i.no_posts]
-    postbears = []
-    await asyncio.wait(webserver+[bear.start() for bear in storybears+postbears])
+    return await asyncio.wait(webserver+[bear.start() for bear in storybears+postbears])
 
 asyncio.get_event_loop().run_until_complete(main())
