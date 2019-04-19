@@ -5,8 +5,9 @@ from hypercorn.config import Config
 from quart.templating import render_template
 from asyncio import sleep,Lock
 from base64 import b64encode
-from json import loads
+from json import loads,dumps
 from aiomysql.cursors import DictCursor
+from pymysql.err import OperationalError
 
 class MyQuart(Quart):
     jinja_options = Quart.jinja_options.copy()
@@ -18,6 +19,7 @@ class WebClient:
         self.pool = pool
         self.bind = [bind]
         self.lock = Lock()
+        #self.app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
     async def init(self):
         self.conn = await self.pool.acquire()
@@ -28,32 +30,52 @@ class WebClient:
             rt = {'valid':0,'admin':0,'token':token}
             if token:
                 async with self.lock:
-                    await self.db.execute("SELECT valid,admin FROM tokens WHERE token=%s",(token,))
-                    res = await self.db.fetchone()
-                    rt = {**rt, **res}
-                    if rt['valid']:
-                        return rt
+                    while True:
+                        try:
+                            await self.db.execute("SELECT valid,admin FROM tokens WHERE token=%s",(token,))
+                            res = await self.db.fetchone()
+                            break
+                        except OperationalError:
+                            self.conn = await self.pool.acquire()
+                            self.db = await self.conn.cursor(DictCursor)
+                            continue
+                rt = {**rt, **res}
+                if rt['valid']:
+                    return rt
             return 0
+
 
         @self.app.route("/")
         async def home():
             v = await session(request)
             if not v:
                 return await render_template("auth_error.html"),403
-            s_count = p_count = u_count = 0
             async with self.lock:
                 await self.db.execute("""
                 SELECT  
                     (SELECT COUNT(*) FROM users) users,
                     (SELECT COUNT(*) FROM stories) AS stories,
                     (SELECT COUNT(*) FROM posts) AS posts
+
                 """)
-                res = await self.db.fetchone()
-            if res:
-                u_count = res['users']
-                s_count = res['stories']
-                p_count = res['posts']
-            return await render_template("home.html",story_count=s_count,post_count=p_count,user_count=u_count),200,{'Set-Cookie':'bear_token={}; Max-Age=2147483647'.format(v['token'])},
+                counts = await self.db.fetchone()
+            async with self.lock:
+                await self.db.execute("SELECT stories.id,stories.uploaded,users.name,users.current_pfp,stories.ext FROM stories INNER JOIN users ON stories.user_id=users.id ORDER BY uploaded DESC LIMIT 1")
+                l_story = await self.db.fetchone()
+            #async with self.lock:
+            #    await self.db.execute("SELECT name FROM users WHERE scrape_posts=1")
+            #    pwatch = await self.db.fetchall()
+            return await render_template("home_new.html",
+            story_count=counts['stories'],
+            post_count=counts['posts'],
+            user_count=counts['users'],
+            ls_name=l_story['name'],
+            ls_pfp=l_story['current_pfp'],
+            ls_id=l_story['id'],
+            ls_timestamp=l_story['uploaded'],
+            ls_ext=l_story['ext']
+            #postwatch=[i['name'] for i in pwatch]
+            ),200,{'Set-Cookie':'bear_token={}; Max-Age=2147483647'.format(v['token'])},
         
         @self.app.route("/search",methods=["POST","GET"])
         async def search():

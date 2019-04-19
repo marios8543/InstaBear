@@ -68,7 +68,7 @@ class Bear:
                 count = 0
                 for ii in i.stories:
                     count+=await ii.save_to_db(self,i)
-                    sleep(3)
+                    await sleep(3)
                 if count>0:
                     self.info("Saved {} story(s) by {}".format(count,i.name))
 

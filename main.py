@@ -20,9 +20,9 @@ async def main():
         print("Could not connect to database")
         print(str(e))
         exit(1)
-    if 'webserver_bind' in configs and configs['webserver_bind']:
+    if 'webserver_binds' in configs and len(configs['webserver_binds'])>0:
         from WebClient.WebClient import WebClient
-        webserver = [(await WebClient(pool,configs['webserver_bind']).init())]
+        webserver = [(await WebClient(pool,i).init()) for i in configs['webserver_binds']]
     else:
         webserver = []
     storybears = [StoryBear.Bear(i,pool) for i in configs['accounts']]

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>InstaBear</title>
+  <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
+  <link rel="stylesheet" href="https://tzatzikiweeb.moe/static/css/bootstrap.min.css">
+
+</head>
+
+<body>
+  <div class="container-fluid" id="mainWrap">
+    <div v-if="current_view=='home'">
+      <h1>InstaBear</h1>
+      <h5>Bearing <span class="badge badge-pill badge-info">{{ story_count }}</span> stories and <span
+          class="badge badge-pill badge-info">{{ post_count }}</span> posts from <span
+          class="badge badge-pill badge-info">{{ user_count }}</span> users...</h5>
+      <hr><br>
+      <div class="accordion" id="accordion">
+        <div class="card">
+          <div class="card-header" id="headingOne">
+            <h2 class="mb-0">
+              <button class="btn btn-link" type="button" data-toggle="collapse" data-target="#collapseOne"
+                aria-expanded="true" aria-controls="collapseOne">
+                <h3>Search</h3>
+              </button>
+            </h2>
+          </div>
+          <div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-parent="#accordion">
+            <div class="card-body">
+              <input class="form-control" type="text" v-model="inputs.username" placeholder="Username"
+                v-on:input="methods.autoc($event.target.value)">
+              <div class="list-group" v-if="inputs.suggestions.length>0" v-for="itm in inputs.suggestions">
+                <a href="#" class="list-group-item list-group-item-action list-group-item-secondary"
+                  v-on:click="methods.register_autoc(itm)">{{ itm }}</a>
+              </div><br>
+              <input class="form-control" type="text" v-model="inputs.account" placeholder="Account"><br>
+              <button v-on:click="methods.search()" type="submit" class="btn btn-primary">Search</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header" id="headingTwo">
+            <h2 class="mb-0">
+              <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapseTwo"
+                aria-expanded="false" aria-controls="collapseTwo">
+                <h3>Latest story</h3>
+              </button>
+            </h2>
+          </div>
+          <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordion">
+            <div class="card-body">
+              User: <img style="border-radius: 50%;" v-bind:src="latest_story.user.profile_pic" width="25" height="25">
+              <a target="_blank"
+                v-bind:href="'https://www.instagram.com/'+latest_story.user.name">{{ latest_story.user.name }}</a><br>
+              Timestamp: {{ latest_story.timestamp }}<br>
+              <img height="480" width="320" v-if="latest_story.ext=='jpg'" v-bind:src="'story/'+latest_story.id">
+              <video v-else v-bind:src="'story/'+latest_story.id"></video>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header" id="headingThree">
+            <h2 class="mb-0">
+              <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapseThree"
+                aria-expanded="false" aria-controls="collapseTwo">
+                <h3>Post-stalked users</h3>
+              </button>
+            </h2>
+          </div>
+          <div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-parent="#accordion">
+            <div class="card-body">
+              NOT IMPLEMENTED
+              <ul class="list-group">
+                <div v-if="postwatch.length>0" v-for="itm in postwatch">
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {{itm.username }} <span class="badge badge-primary badge-pill">{{ itm.count }} posts</span>
+                  </li>
+                </div>
+                <div v-if="postwatch.length==0">No post-watched users</div>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="media_view" v-else-if="current_view=='media_view'">
+      <span class="badge badge-pill badge-dark" style="float:left;" v-on:click="current_view='home'">Back</span>
+      <span v-on:click="methods.toggleView()" class="badge badge-pill badge-dark"
+        style="position: fixed; top: 0px; left: 135px; z-index: 99;">
+        <span v-if="media_view.post">
+          Posts {{ media_view.post_index+1 }} / {{ media_view.post_count }}
+        </span>
+        <span v-else>
+          Stories {{ media_view.story_index+1 }} / {{ media_view.story_count }}
+        </span>
+      </span>
+      <div v-if="!media_view.is_video"
+        v-bind:style="'width:95vw; height: 95vh; background: url('+media_view.src+') no-repeat center fixed; background-size:contain;'">
+      </div>
+      <div v-else><video controls loop autoplay style="width:95vw; height: 95vh;" v-bind:src="media_view.src"></video>
+      </div>
+      <span v-on:click="show_meta=true" class="badge badge-pill badge-dark"
+        style="position: fixed; bottom: 0px; left: 135px;">
+        <img style="border-radius: 50%;" v-bind:src="media_view.user.profile_pic" width="25" height="25">
+        {{ media_view.user.name }}
+      </span>
+      <div v-if="show_meta" class="card" style="width: 18rem; position: fixed; top:30%; left:40px;">
+        <div class="card-body">
+          <h5 class="card-title">
+            <img style="border-radius: 50%;" v-bind:src="media_view.user.profile_pic" width="25" height="25">
+            <a target="_blank"
+              v-bind:href="'https://www.instagram.com/'+media_view.user.name">{{ media_view.user.name }}</a>
+            <div v-on:click="show_meta=false" class="badge badge-pill badge-dark" style="float:right;">x</div>
+          </h5>
+          <h6 class="card-subtitle mb-2 text-muted"><a target="_blank"
+              v-bind:href="'profile_pictures/'+media_view.user.id">Profile Pictures</a></h6>
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item">Save posts: <input type="checkbox" v-bind:value="media_view.meta.save_posts"
+                v-on:change="togglePosts()"></li>
+            <li class="list-group-item"><a target="_blank" v-bind:href="media_view.src">Save media</a></li>
+            <li class="list-group-item">ID: {{ media_view.meta.id }}</li>
+            <li class="list-group-item">Timestamp: {{ media_view.meta.timestamp }}</li>
+            <li class="list-group-item" v-if="media_view.post">Caption: {{ media_view.meta.caption }}</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="https://tzatzikiweeb.moe/static/js/jquery-3.3.1.min.js"></script>
+  <script src="https://tzatzikiweeb.moe/static/js/vue.js"></script>
+  <script src="https://tzatzikiweeb.moe/static/js/hammer.min.js"></script>
+  <script src="https://tzatzikiweeb.moe/static/js/bootstrap.min.js"></script>
+  <script src="static/js/instabear_new.js"></script>
+  <script>
+    app.story_count = '%% story_count %%';
+    app.user_count = '%% user_count %%';
+    app.post_count = '%% post_count %%';
+    app.latest_story.user.name = '%% ls_name %%';
+    app.latest_story.user.profile_pic = '%% ls_pfp %%';
+    app.latest_story.id = '%% ls_id %%';
+    app.latest_story.timestamp = '%% ls_timestamp %%';
+    app.latest_story.ext = '%% ls_ext %%';
+  </script>
+</body>
+
+</html>
