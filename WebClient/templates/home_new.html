@@ -54,7 +54,7 @@
               User: <img style="border-radius: 50%;" v-bind:src="latest_story.user.profile_pic" width="25" height="25">
               <a target="_blank"
                 v-bind:href="'https://www.instagram.com/'+latest_story.user.name">{{ latest_story.user.name }}</a><br>
-              Timestamp: {{ latest_story.timestamp }}<br>
+              Timestamp: {{ methods.formatTimestamp(latest_story.timestamp) }}<br>
               <img height="480" width="320" v-if="latest_story.ext=='jpg'" v-bind:src="'story/'+latest_story.id">
               <video v-else v-bind:src="'story/'+latest_story.id"></video>
             </div>
@@ -117,11 +117,11 @@
           <h6 class="card-subtitle mb-2 text-muted"><a target="_blank"
               v-bind:href="'profile_pictures/'+media_view.user.id">Profile Pictures</a></h6>
           <ul class="list-group list-group-flush">
-            <li class="list-group-item">Save posts: <input type="checkbox" v-bind:value="media_view.meta.save_posts"
-                v-on:change="togglePosts()"></li>
+            <li class="list-group-item">Save posts: <input type="checkbox" v-model="media_view.meta.save_posts"
+                v-on:change="methods.togglePosts()"></li>
             <li class="list-group-item"><a target="_blank" v-bind:href="media_view.src">Save media</a></li>
             <li class="list-group-item">ID: {{ media_view.meta.id }}</li>
-            <li class="list-group-item">Timestamp: {{ media_view.meta.timestamp }}</li>
+            <li class="list-group-item">Timestamp: {{ methods.formatTimestamp(media_view.meta.timestamp) }}</li>
             <li class="list-group-item" v-if="media_view.post">Caption: {{ media_view.meta.caption }}</li>
           </ul>
         </div>

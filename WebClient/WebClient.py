@@ -274,7 +274,6 @@ class WebClient:
         """
         cfg = Config()
         cfg.bind = self.bind
-        cfg.backlog = 1
         print("Starting server on {}".format(self.bind))
         return serve(self.app,cfg)
 

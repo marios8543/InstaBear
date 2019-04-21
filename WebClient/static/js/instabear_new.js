@@ -7,6 +7,10 @@ const app = new Vue({
             register_autoc:function(itm){
                 app.inputs.username = itm;
                 app.inputs.suggestions = [];
+            },
+            formatTimestamp:function(timestamp) {
+                let ts = new Date(timestamp * 1000);
+                return `${ts.getDate()}/${ts.getMonth()}/${ts.getFullYear()} ${ts.getHours()}:${ts.getMinutes()}`;
             }
         },
         current_view: "home",
@@ -42,7 +46,7 @@ const app = new Vue({
                 profile_pic: "",
             },
             meta: {
-                timestamp: "",
+                timestamp: 0,
                 id: "",
                 caption: "",
                 save_posts:false
@@ -112,6 +116,20 @@ app.methods.toggleView = function toggleView() {
     loadMedia();
 }
 
+app.methods.togglePosts = function togglePosts() {
+    $.ajax({
+        type: "GET",
+        url: "post_toggle",
+        data: {
+            'username': app.media_view.user.name
+        },
+        success: function (data) {
+            app.forms.poststalk = parseInt(data);
+        },
+        dataType: "html"
+    }).fail(function (xhr, text, err) { alert(`${JSON.parse(xhr.responseText).message}`); });
+}
+
 function fetchPosts() {
     $.ajax({
         type: "GET",
@@ -128,20 +146,6 @@ function fetchPosts() {
     });
 }
 
-function togglePosts() {
-    $.ajax({
-        type: "GET",
-        url: "post_toggle",
-        data: {
-            'username': app.media_view.user.name
-        },
-        success: function (data) {
-            app.forms.poststalk = parseInt(data);
-        },
-        dataType: "html"
-    }).fail(function (xhr, text, err) { alert(`${JSON.parse(xhr.responseText).message}`); });
-}
-
 function loadMedia() {
     app.current_view = "media_view";
     if (!app.media_view.post) {
@@ -151,9 +155,8 @@ function loadMedia() {
         app.media_view.user.id = story.user_id;
         app.media_view.user.name = story.name;
         app.media_view.user.profile_pic = story.current_pfp;
-        let uploaded = new Date(parseInt(story.uploaded) * 1000);
-        app.media_view.meta.timestamp = `${uploaded.getDate()}/${uploaded.getMonth()}/${uploaded.getFullYear()} ${uploaded.getHours()}:${uploaded.getMinutes()}`;
-        app.media_view.meta.id = story.id
+        app.media_view.meta.timestamp = story.uploaded;
+        app.media_view.meta.id = story.id;
         app.media_view.meta.caption = null;
         app.media_view.meta.save_posts = story.scrape_posts==1
     }
@@ -162,8 +165,7 @@ function loadMedia() {
         app.media_view.is_video = post.ext == "mp4";
         app.media_view.src = `post/${post.id}`;
         app.media_view.meta.id = post.id;
-        let uploaded = new Date(parseInt(post.timestamp) * 1000);
-        app.media_view.meta.timestamp = `${uploaded.getDate()}/${uploaded.getMonth()}/${uploaded.getFullYear()} ${uploaded.getHours()}:${uploaded.getMinutes()}`;
+        app.media_view.meta.timestamp = post.timestamp;
         app.media_view.meta.caption = post.caption;
     }
 }
@@ -202,6 +204,6 @@ hamm.on('swipeleft', function (ev) {
 
 });
 
-hamm.on('swipeup', function (ev) {
+/*hamm.on('swipeup', function (ev) {
     if(app.current_view=='media_view') app.show_meta = true;
-});
+});*/
