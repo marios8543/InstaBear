@@ -17,10 +17,13 @@ const app = new Vue({
         story_count: 0,
         post_count: 0,
         user_count: 0,
+        logged_in:false,
+        login_anyway:false,
+        user_id:0,
         inputs: {
             username: "",
             account: "",
-            suggestions: []
+            suggestions: [],
         },
         latest_story: {
             user: {

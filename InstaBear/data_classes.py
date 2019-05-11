@@ -14,7 +14,7 @@ class User:
         self.stories = []
 
     async def save_to_db(self,bear):
-        await bear.db.execute("INSERT INTO users (id,name,current_pfp) values(%s,%s,%s) ON DUPLICATE KEY UPDATE name=%s, current_pfp=%s",(self.id,self.name,self.picture,self.name,self.picture,))
+        await bear.db.execute("INSERT INTO users (id,name,current_pfp,account) values(%s,%s,%s,%s) ON DUPLICATE KEY UPDATE name=%s, current_pfp=%s",(self.id,self.name,self.picture,bear.username,self.name,self.picture,))
         pfp_id = self.picture.split("/")[4]
         res = await bear.db.execute("SELECT id FROM profile_pictures WHERE id=%s",(pfp_id,))
         if not res:
@@ -49,20 +49,4 @@ class Story:
                     if await bear.db.execute("INSERT INTO stories (id,uploaded,media,user_id,ext) values(%s,%s,%s,%s,%s)",(self.id,dt_to_unix(self.uploaded),await res.read(),user.id,self.ext,)):
                         return 1
         return 0
-
-    async def save_to_fs(self,bear,user):
-        if not path.exists(path.join(bear.photo_dir,user.name)):
-            makedirs(path.join(bear.photo_dir,user.name))
-        p = path.join(bear.photo_dir,user.name,self.uploaded.strftime("%Y-%m-%d_%H-%M-%S"))+"."+self.ext
-        if path.exists(p):
-            return 0
-        async with bear.client.get(self.link) as res:
-            if res.status==200:
-                async with aiofiles.open(p,mode="wb",loop=bear.client.loop) as f:
-                    await f.write(await res.read())
-                    await f.close()
-                    return 1
-        return 0
-
-
 

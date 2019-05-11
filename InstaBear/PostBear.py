@@ -3,6 +3,7 @@ from asyncio import sleep
 from json import dumps
 import traceback
 from InstaBear import queries
+from aiohttp import ClientSession
 
 class PBpost:
     def __init__(self,data,bear,uid):
@@ -85,6 +86,10 @@ class PostBear:
     async def _connectdb(self):
         self.conn = await self.pool.acquire()
         self.db = await self.conn.cursor()
+
+    def update_creds(self,session_id,user_id):
+        self.client = ClientSession(cookies={'sessionid':session_id,'ds_user_id':user_id})
+        return
 
     async def _get_users(self):
         await self.db.execute("SELECT DISTINCT id FROM users WHERE scrape_posts=1 AND account=%s",(self.username,))

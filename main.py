@@ -1,10 +1,14 @@
-from InstaBear import StoryBear,PostBear
 from json import load
 import asyncio
 import aiomysql
+from aiomysql.cursors import DictCursor
+from InstaBear.queries import sql_queries
 from uvloop import EventLoopPolicy
+from Token import tokens_list
+import queries
 
 asyncio.set_event_loop_policy(EventLoopPolicy())
+pool = False
 
 async def main():
     configs = load(open("config.json","r"))
@@ -20,13 +24,27 @@ async def main():
         print("Could not connect to database")
         print(str(e))
         exit(1)
+    async with pool.acquire() as conn:
+        db = await conn.cursor()
+        for i in queries.sql_queries:
+            await db.execute(i)
     if 'webserver_binds' in configs and len(configs['webserver_binds'])>0:
         from WebClient.WebClient import WebClient
-        webserver = [(await WebClient(pool,i).init()) for i in configs['webserver_binds']]
+        coros = [(await WebClient(pool,i).init()) for i in configs['webserver_binds']]
     else:
-        webserver = []
-    storybears = [StoryBear.Bear(i,pool) for i in configs['accounts']]
-    postbears = [PostBear.PostBear(i,pool) for i in storybears if not i.no_posts]
-    return await asyncio.wait(webserver+[bear.start() for bear in storybears+postbears])
+        coros = []
+    
+    from Token import Token
+    async with pool.acquire() as conn:
+        db = await conn.cursor(DictCursor)
+        await db.execute("SELECT * FROM tokens")
+        res = await db.fetchall()
+        for i in res:
+            tokens_list[i['token']] = Token(i,pool)
+            if await tokens_list[i['token']].storybear.check_auth():
+                coros.append(tokens_list[i['token']].storybear.start())
+                coros.append(tokens_list[i['token']].postbear.start())
+    await asyncio.gather(*coros)
 
-asyncio.get_event_loop().run_until_complete(main())
+
+asyncio.get_event_loop().run_until_complete(main())Θ

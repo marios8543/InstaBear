@@ -65,21 +65,31 @@
             <h2 class="mb-0">
               <button class="btn btn-link collapsed" type="button" data-toggle="collapse" data-target="#collapseThree"
                 aria-expanded="false" aria-controls="collapseTwo">
-                <h3>Post-stalked users</h3>
+                <h3>Account management</h3>
               </button>
             </h2>
           </div>
           <div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-parent="#accordion">
             <div class="card-body">
-              NOT IMPLEMENTED
-              <ul class="list-group">
-                <div v-if="postwatch.length>0" v-for="itm in postwatch">
-                  <li class="list-group-item d-flex justify-content-between align-items-center">
-                    {{itm.username }} <span class="badge badge-primary badge-pill">{{ itm.count }} posts</span>
-                  </li>
-                </div>
-                <div v-if="postwatch.length==0">No post-watched users</div>
-              </ul>
+              <span v-if="logged_in" style="color:green;">
+                Logged in with user ID {{ user_id }}
+                <a v-if="!login_anyway" href="#" v-on:click="login_anyway=true">Update session</a>
+              </span>
+              <span v-else style="color:red;">Not logged in!</span>
+              <div v-if="(!logged_in) || login_anyway">
+                <form method="POST" action="insta_login">
+                  <div class="form-group">
+                    <label for="exampleInputEmail1">Username</label>
+                    <input type="text" name="username" class="form-control" placeholder="Enter username">
+                    <a href="login_faq.txt" target="_blank"><small class="form-text text-muted">Will you hack me ?</small></a>
+                  </div>
+                  <div class="form-group">
+                    <label for="exampleInputPassword1">Password</label>
+                    <input type="password" name="password" class="form-control" placeholder="Enter password">
+                  </div>
+                  <button type="submit" class="btn btn-primary">Update session</button>
+                </form>
+              </div>
             </div>
           </div>
         </div>
@@ -142,6 +152,8 @@
     app.latest_story.id = '%% ls_id %%';
     app.latest_story.timestamp = '%% ls_timestamp %%';
     app.latest_story.ext = '%% ls_ext %%';
+    app.logged_in = '%% logged_in %%' == 'True';
+    app.user_id = '%% user_id %%';
   </script>
 </body>
 

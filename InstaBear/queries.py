@@ -10,7 +10,7 @@ POSTS = 'https://www.instagram.com/graphql/query/?query_hash=f2405b236d85e8296cf
 
 sql_queries = [
   """
-  CREATE TABLE `posts` (
+CREATE TABLE IF NOT EXISTS `posts` (
   `id` bigint(255) DEFAULT NULL,
   `user_id` bigint(255) DEFAULT NULL,
   `shortcode` varchar(255) DEFAULT NULL,
@@ -21,7 +21,7 @@ sql_queries = [
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 """,
   """
-  CREATE TABLE `profile_pictures` (
+CREATE TABLE IF NOT EXISTS `profile_pictures` (
   `id` varchar(255) DEFAULT NULL,
   `user_id` bigint(20) DEFAULT NULL,
   `media` blob,
@@ -29,7 +29,7 @@ sql_queries = [
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 """,
   """
-  CREATE TABLE `stories` (
+CREATE TABLE IF NOT EXISTS `stories` (
   `id` bigint(20) DEFAULT NULL,
   `uploaded` bigint(255) DEFAULT NULL,
   `user_id` bigint(20) DEFAULT NULL,
@@ -38,15 +38,18 @@ sql_queries = [
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 """,
   """
-  CREATE TABLE `tokens` (
+CREATE TABLE IF NOT EXISTS `tokens` (
   `token` varchar(255) DEFAULT NULL,
   `valid` tinyint(4) DEFAULT '1',
   `admin` tinyint(4) NOT NULL DEFAULT '0',
-  `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
+  `created` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `id` bigint(20) DEFAULT NULL,
+  `session_id` varchar(255) DEFAULT NULL,
+  `interval` int(11) NOT NULL DEFAULT '15'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 """,
   """
-  CREATE TABLE `users` (
+CREATE TABLE IF NOT EXISTS `users` (
   `id` bigint(20) DEFAULT NULL,
   `name` varchar(255) DEFAULT NULL,
   `account` varchar(255) DEFAULT NULL,

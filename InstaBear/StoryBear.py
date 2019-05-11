@@ -11,10 +11,11 @@ from InstaBear.PostBear import PostBear
 
 class Bear:
     def __init__(self,config,pool):
+        self.running = False
         self.pool = pool
         self.username = config['username'] if 'username' in config else ""
         self.password = config['password'] if 'password' in config else ""
-        self.userId = config['cookies']['ds_user_id']
+        self.userId = True
         self.excluded = config['excluded'] if 'excluded' in config and type(config['excluded']) is list else []
         if 'interval' in config:
             try:
@@ -72,22 +73,23 @@ class Bear:
                 if count>0:
                     self.info("Saved {} story(s) by {}".format(count,i.name))
 
-    """
-    async def _scrapeStoriesFs(self):
-        if not self.photo_dir:
-            return
-        if self.userId and len(self.users)>0:
-            for i in self.users:
-                count = 0
-                for ii in i.stories:
-                    count+=await ii.save_to_fs(self,i)
-                    sleep(3)
-                self.info("Saved {} story(s) by {}".format(count,i.name))
-    """
+    async def check_auth(self):
+        res = await self.client.get("https://www.instagram.com/graphql/query/?query_hash=7c16654f22c819fb63d1183034a5162f")
+        if res.status==200:
+            jar = self.client.cookie_jar
+            for i in jar:
+                if i.key=="ds_user_id":
+                    return i.value
+
+    def update_creds(self,session_id,user_id):
+        self.client = ClientSession(cookies={'sessionid':session_id,'ds_user_id':user_id})
+        return
+
     async def start(self):
+        self.running = True
         self.info("Starting storybear...")
         await self._connectdb()
-        while self.userId:
+        while self.userId and self.running:
             try:
                 await self._fetchStories()
                 await sleep(5)
@@ -97,3 +99,6 @@ class Bear:
                 #print(traceback.format_exc())
             finally:
                 await sleep(self.interval)
+
+    def stop(self):
+        self.running = False
