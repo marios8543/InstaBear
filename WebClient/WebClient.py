@@ -254,7 +254,7 @@ class WebClient:
                         async with self.lock:
                             await self.db.execute("UPDATE tokens SET id=%s,session_id=%s WHERE token=%s",(user_id,session_id.value,v['token'].token))
                             v['token'].storybear.update_creds(session_id.value,user_id)
-                            v['token'].postbear = 
+                            v['token'].postbear.update_creds(session_id.value,user_id)
                             return redirect("/")
                 return await render_template('error.html',error_code=403,error_msg="Λάθος όνομα χρήστη ή κωδικός πρόσβασης")
 
