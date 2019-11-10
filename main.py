@@ -47,4 +47,4 @@ async def main():
     await asyncio.gather(*coros)
 
 
-asyncio.get_event_loop().run_until_complete(main())Θ
+asyncio.get_event_loop().run_until_complete(main())
