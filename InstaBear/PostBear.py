@@ -61,8 +61,17 @@ class PBuser:
                 self.end_cursor = data['page_info']['end_cursor']
                 for i in data['edges']:
                     i = i['node']
-                    if not next((post for post in self.posts if post.id == i['id']), None):
-                        self.posts.append(PBpost(i,self.bear,self.id))
+                    if 'edge_sidecar_to_children' in i:
+                        for ii in i['edge_sidecar_to_children']['edges']:
+                            ii = ii['node']
+                            i['id'] = ii['id']
+                            i['display_url'] = ii['display_url']
+                            i['is_video'] = ii['is_video']
+                            if not next((post for post in self.posts if post.id == i['id']), None):
+                                self.posts.append(PBpost(i,self.bear,self.id))
+                    else:
+                        if not next((post for post in self.posts if post.id == i['id']), None):
+                            self.posts.append(PBpost(i, self.bear, self.id))
             await sleep(3)
 
 
@@ -115,8 +124,9 @@ class PostBear:
                                 self.users.append(PBuser(r,self))
                                 await self.users[-1].fetch_more()
                     await sleep(2)
-                except Exception:
-                    self.error("Failed processing user {}".format(i[0]))
+                except Exception as e:
+                    self.error("Failed processing user {} ({})".format(i[0],str(e)))
+                    traceback.print_exc()
                     continue
 
     async def _save_posts(self):
