@@ -1,18 +1,7 @@
 // VIEW RENDERING ---------------------------------------------------------------------------
-
 const app = new Vue({
     el: "#mainWrap",
     data: {
-        methods:{
-            register_autoc:function(itm){
-                app.inputs.username = itm;
-                app.inputs.suggestions = [];
-            },
-            formatTimestamp:function(timestamp) {
-                let ts = new Date(timestamp * 1000);
-                return `${ts.getDate()}/${ts.getMonth()}/${ts.getFullYear()} ${ts.getHours()}:${ts.getMinutes()}`;
-            }
-        },
         current_view: "home",
         story_count: 0,
         post_count: 0,
@@ -54,84 +43,112 @@ const app = new Vue({
                 caption: "",
                 save_posts:false
             }
+        },
+        tokens: [],
+        current_token: ""
+    },
+    methods: {
+        register_autoc: function(itm) {
+            this.inputs.username = itm;
+            this.inputs.suggestions = [];
+        },
+        formatTimestamp: function(timestamp) {
+            let ts = new Date(timestamp * 1000);
+            return `${ts.getDate()}/${ts.getMonth()}/${ts.getFullYear()} ${ts.getHours()}:${ts.getMinutes()}`;
+        },
+        autoc: function(val) {
+            if (val.length >= 3) {
+                $.ajax({
+                    type: "GET",
+                    url: "usr_autoc",
+                    data: {
+                        'input': val
+                    },
+                    success: function (data) {
+                        this.inputs.suggestions = data;
+                    },
+                    dataType: "json"
+                });
+            }
+            else this.inputs.suggestions = [];
+        },
+        togglePosts: function() {
+            $.ajax({
+                type: "GET",
+                url: "post_toggle",
+                data: {
+                    'username': this.media_view.user.name
+                },
+                success: function (data) {
+                    this.forms.poststalk = parseInt(data);
+                },
+                dataType: "html"
+            }).fail(function (xhr, text, err) { alert(`${JSON.parse(xhr.responseText).message}`); });
+        },
+        toggleView: function() {
+            if (this.media_view.post) {
+                this.media_view.post = false;
+            }
+            else {
+                if (posts.length == 0) {
+                    fetchPosts();
+                    if (posts.length == 0) {
+                        return;
+                    }
+                    else {
+                        this.media_view.post = true;
+                    }
+                }
+                else {
+                    this.media_view.post = true;
+                }
+            }
+            loadMedia();
+        },
+        search: function() {
+            $.ajax({
+
+                type: "POST",
+                url: "search",
+                data: {
+                    'username': app.inputs.username,
+                    'account': app.inputs.account,
+                },
+                success: function (data) {
+                    stories = data;
+                    app.media_view.story_count = data.length;
+                    app.media_view.story_index = 0;
+                    loadMedia();
+                },
+                dataType: "json"
+            }).fail(function (xhr, text, err) { alert(`${text} - ${err}`) });
+       },
+       loadToken: function(token) {
+         setCookie("bear_token",token,365);
+         window.location.href = "/";
+       }
+    },
+    mounted: function() {
+      let store = localStorage;
+      let current_token = getCookie('bear_token');
+      this.current_token = current_token;
+      if (store.getItem("tokens")==null) {
+        store.setItem("tokens",`["${current_token}"]`);
+        this.tokens = [current_token];
+      }
+      else {
+        let tokens = JSON.parse(store.getItem("tokens"));
+        if (!tokens.includes(current_token)) {
+          tokens.push(current_token);
+          store.setItem("tokens",JSON.stringify(tokens));
         }
+        this.tokens = tokens;
+      }
     }
 });
 
-
 var stories = [];
 var posts = [];
-
-app.methods.autoc = function autoc(val) {
-    if (val.length >= 3) {
-        $.ajax({
-            type: "GET",
-            url: "usr_autoc",
-            data: {
-                'input': val
-            },
-            success: function (data) {
-                app.inputs.suggestions = data;
-            },
-            dataType: "json"
-        });
-    }
-    else app.inputs.suggestions = [];
-}
-
-app.methods.search = function search() {
-    $.ajax({
-
-        type: "POST",
-        url: "search",
-        data: {
-            'username': app.inputs.username,
-            'account': app.inputs.account,
-        },
-        success: function (data) {
-            stories = data;
-            app.media_view.story_count = data.length;
-            app.media_view.story_index = 0;
-            loadMedia();
-        },
-        dataType: "json"
-    }).fail(function (xhr, text, err) { alert(`${text} - ${err}`) });
-}
-
-app.methods.toggleView = function toggleView() {
-    if (app.media_view.post) {
-        app.media_view.post = false;
-    }
-    else {
-        if (posts.length == 0) {
-            fetchPosts();
-            if (posts.length == 0) {
-                return;
-            }
-            else {
-                app.media_view.post = true;
-            }
-        }
-        else {
-            app.media_view.post = true;
-        }
-    }
-    loadMedia();
-}
-
-app.methods.togglePosts = function togglePosts() {
-    $.ajax({
-        type: "GET",
-        url: "post_toggle",
-        data: {
-            'username': app.media_view.user.name
-        },
-        success: function (data) {
-            app.forms.poststalk = parseInt(data);
-        },
-        dataType: "html"
-    }).fail(function (xhr, text, err) { alert(`${JSON.parse(xhr.responseText).message}`); });
-}
 
 function fetchPosts() {
     $.ajax({
@@ -207,6 +224,27 @@ hamm.on('swipeleft', function (ev) {
 
 });
 
-/*hamm.on('swipeup', function (ev) {
-    if(app.current_view=='media_view') app.show_meta = true;
-});*/
+// HELPER FUNCTIONS ---------------------------------------------------
+
+function getCookie(cname) {
+  var name = cname + "=";
+  var decodedCookie = decodeURIComponent(document.cookie);
+  var ca = decodedCookie.split(';');
+  for(var i = 0; i <ca.length; i++) {
+    var c = ca[i];
+    while (c.charAt(0) == ' ') {
+      c = c.substring(1);
+    }
+    if (c.indexOf(name) == 0) {
+      return c.substring(name.length, c.length);
+    }
+  }
+  return "";
+}
+
+function setCookie(cname, cvalue, exdays) {
+  var d = new Date();
+  d.setTime(d.getTime() + (exdays*24*60*60*1000));
+  var expires = "expires="+ d.toUTCString();
+  document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+}

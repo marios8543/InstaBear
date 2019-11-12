@@ -12,7 +12,17 @@
 <body>
   <div class="container-fluid" id="mainWrap">
     <div v-if="current_view=='home'">
-      <h1>InstaBear</h1>
+      <h1>
+      InstaBear
+      <div class="btn-group">
+        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+          {{ current_token }}
+        </button>
+        <div class="dropdown-menu">
+          <a v-for="token in tokens" class="dropdown-item" href="#" v-on:click="loadToken(token)">{{ token }}</a>
+        </div>
+      </div>
+      </h1>
       <h5>Bearing <span class="badge badge-pill badge-info">{{ story_count }}</span> stories and <span
           class="badge badge-pill badge-info">{{ post_count }}</span> posts from <span
           class="badge badge-pill badge-info">{{ user_count }}</span> users...</h5>
@@ -30,12 +40,12 @@
           <div id="collapseOne" class="collapse show" aria-labelledby="headingOne" data-parent="#accordion">
             <div class="card-body">
               <input class="form-control" type="text" v-model="inputs.username" placeholder="Username"
-                v-on:input="methods.autoc($event.target.value)">
+                v-on:input="autoc($event.target.value)">
               <div class="list-group" v-if="inputs.suggestions.length>0" v-for="itm in inputs.suggestions">
                 <a href="#" class="list-group-item list-group-item-action list-group-item-secondary"
-                  v-on:click="methods.register_autoc(itm)">{{ itm }}</a>
+                  v-on:click="register_autoc(itm)">{{ itm }}</a>
               </div><br>
-              <button v-on:click="methods.search()" type="submit" class="btn btn-primary">Search</button>
+              <button v-on:click="search()" type="submit" class="btn btn-primary">Search</button>
             </div>
           </div>
         </div>
@@ -53,7 +63,7 @@
               User: <img style="border-radius: 50%;" v-bind:src="latest_story.user.profile_pic" width="25" height="25">
               <a target="_blank"
                 v-bind:href="'https://www.instagram.com/'+latest_story.user.name">{{ latest_story.user.name }}</a><br>
-              Timestamp: {{ methods.formatTimestamp(latest_story.timestamp) }}<br>
+              Timestamp: {{ formatTimestamp(latest_story.timestamp) }}<br>
               <img height="480" width="320" v-if="latest_story.ext=='jpg'" v-bind:src="'story/'+latest_story.id">
               <video v-else v-bind:src="'story/'+latest_story.id"></video>
             </div>
@@ -96,7 +106,7 @@
     </div>
     <div id="media_view" v-else-if="current_view=='media_view'">
       <span class="badge badge-pill badge-dark" style="float:left;" v-on:click="current_view='home'">Back</span>
-      <span v-on:click="methods.toggleView()" class="badge badge-pill badge-dark"
+      <span v-on:click="toggleView()" class="badge badge-pill badge-dark"
         style="position: fixed; top: 0px; left: 135px; z-index: 99;">
         <span v-if="media_view.post">
           Posts {{ media_view.post_index+1 }} / {{ media_view.post_count }}
@@ -127,10 +137,10 @@
               v-bind:href="'profile_pictures/'+media_view.user.id">Profile Pictures</a></h6>
           <ul class="list-group list-group-flush">
             <li class="list-group-item">Save posts: <input type="checkbox" v-model="media_view.meta.save_posts"
-                v-on:change="methods.togglePosts()"></li>
+                v-on:change="togglePosts()"></li>
             <li class="list-group-item"><a target="_blank" v-bind:href="media_view.src">Save media</a></li>
             <li class="list-group-item">ID: {{ media_view.meta.id }}</li>
-            <li class="list-group-item">Timestamp: {{ methods.formatTimestamp(media_view.meta.timestamp) }}</li>
+            <li class="list-group-item">Timestamp: {{ formatTimestamp(media_view.meta.timestamp) }}</li>
             <li class="list-group-item" v-if="media_view.post">Caption: {{ media_view.meta.caption }}</li>
           </ul>
         </div>
@@ -140,6 +150,7 @@
   <script src="https://tzatzikiweeb.moe/static/js/jquery-3.3.1.min.js"></script>
   <script src="https://tzatzikiweeb.moe/static/js/vue.js"></script>
   <script src="https://tzatzikiweeb.moe/static/js/hammer.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
   <script src="https://tzatzikiweeb.moe/static/js/bootstrap.min.js"></script>
   <script src="static/js/instabear_new.js"></script>
   <script>
