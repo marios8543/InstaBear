@@ -46,7 +46,9 @@ class WebClient:
                     if token in tokens_list:
                         rt['token'] = tokens_list[token]
                     else:
-                        rt['token'] = Token(token=token)
+                        t = Token(token=token)
+                        rt['token'] = t
+                        tokens_list[token] = t
                     return rt
             return 0
 
