@@ -188,12 +188,12 @@ class WebClient:
             async with self.lock:
                 await self.db.execute("""
                 CASE WHEN ( (SELECT scrape_posts FROM users WHERE name={0} AND account='{1}') = 1 )
-                    THEN UPDATE users SET scrape_posts=0 WHERE name={0};
+                    THEN UPDATE users SET scrape_posts=0 WHERE name={0} AND account='{1}';
                     SELECT 0;
-                    ELSE UPDATE users SET scrape_posts=1 WHERE name={0};
+                    ELSE UPDATE users SET scrape_posts=1 WHERE name={0} AND account='{1}';
                     SELECT 1;
                 END CASE
-                """.format(usr,v['token'].token))
+                """.format(usr, v['token'].token))
                 res = await self.db.fetchone()
             if res:
                 return list(res)[0],200

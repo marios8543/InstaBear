@@ -14,7 +14,13 @@ class User:
         self.stories = []
 
     async def save_to_db(self,bear):
-        await bear.db.execute("INSERT INTO users (id,name,current_pfp,account) values(%s,%s,%s,%s) ON DUPLICATE KEY UPDATE name=%s, current_pfp=%s",(self.id,self.name,self.picture,bear.username,self.name,self.picture,))
+        await bear.db.execute("SELECT name,current_pfp FROM users WHERE id=%s AND account=%s",(self.id,bear.username,))
+        res = await bear.db.fetchone()
+        if not res:
+            await bear.db.execute("INSERT INTO users (id,name,current_pfp,account) values(%s,%s,%s,%s)",(self.id,self.name,self.picture,bear.username,))
+        else:
+            if res[0]!=self.name or res[1]!=self.picture:
+                await bear.db.execute("UPDATE users SET name=%s,current_pfp=%s WHERE id=%s AND account=%s",(self.name,self.picture,self.id,bear.username,))
         pfp_id = self.picture.split("/")[4]
         res = await bear.db.execute("SELECT id FROM profile_pictures WHERE id=%s",(pfp_id,))
         if not res:

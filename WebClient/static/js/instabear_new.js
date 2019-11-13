@@ -58,6 +58,7 @@ const app = new Vue({
         },
         autoc: function(val) {
             if (val.length >= 3) {
+              let _this = this;
                 $.ajax({
                     type: "GET",
                     url: "usr_autoc",
@@ -65,7 +66,7 @@ const app = new Vue({
                         'input': val
                     },
                     success: function (data) {
-                        this.inputs.suggestions = data;
+                        _this.inputs.suggestions = data;
                     },
                     dataType: "json"
                 });
@@ -73,6 +74,7 @@ const app = new Vue({
             else this.inputs.suggestions = [];
         },
         togglePosts: function() {
+            let _this = this;
             $.ajax({
                 type: "GET",
                 url: "post_toggle",
@@ -80,10 +82,10 @@ const app = new Vue({
                     'username': this.media_view.user.name
                 },
                 success: function (data) {
-                    this.forms.poststalk = parseInt(data);
+                    _this.media_view.meta.save_posts = parseInt(data)==1;
                 },
                 dataType: "html"
-            }).fail(function (xhr, text, err) { alert(`${JSON.parse(xhr.responseText).message}`); });
+            }).fail(function (xhr, text, err) { alert(`${xhr.responseText}`); });
         },
         toggleView: function() {
             if (this.media_view.post) {
