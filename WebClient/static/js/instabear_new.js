@@ -195,10 +195,9 @@ function loadMedia() {
 // CONTROLS --------------------------------------------------------------
 
 const hamm = new Hammer(document.getElementById("mainWrap"));
-hamm.get('swipe').set({ direction: Hammer.DIRECTION_ALL });
+hamm.get('swipe').set({ direction: Hammer.DIRECTION_HORIZONTAL });
 
-hamm.on('swiperight', function (ev) {
-    //PREVIOUS
+function previous() {
     if (app.current_view != "media_view") return
     if (app.media_view.post) {
         if (app.media_view.post_index - 1 >= 0) app.media_view.post_index--;
@@ -209,10 +208,9 @@ hamm.on('swiperight', function (ev) {
         else app.media_view.story_index = app.media_view.story_count - 1;
     }
     loadMedia();
-});
+}
 
-hamm.on('swipeleft', function (ev) {
-    //NEXT
+function next() {
     if (app.current_view != "media_view") return
     if (app.media_view.post) {
         if (app.media_view.post_index + 1 < app.media_view.post_count) app.media_view.post_index++;
@@ -223,7 +221,25 @@ hamm.on('swipeleft', function (ev) {
         else app.media_view.story_index = 0;
     }
     loadMedia();
+}
 
+hamm.on('swiperight', function (ev) {
+    previous();
+});
+
+hamm.on('swipeleft', function (ev) {
+    next();
+});
+
+$("body").keydown(function(ev) {
+    switch (ev.which) {
+        case 37:
+            previous();
+            break;
+        case 39:
+            next();
+            break;
+    }
 });
 
 // HELPER FUNCTIONS ---------------------------------------------------
