@@ -1,7 +1,6 @@
 from datetime import datetime
 from hashlib import md5
 from os import path,makedirs
-import aiofiles
 
 def dt_to_unix(dt):
     return (dt-datetime(1970,1,1)).total_seconds()

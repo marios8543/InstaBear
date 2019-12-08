@@ -11,7 +11,6 @@ const app = new Vue({
         user_id:0,
         inputs: {
             username: "",
-            account: "",
             suggestions: [],
         },
         latest_story: {
@@ -22,7 +21,6 @@ const app = new Vue({
             id: "",
             timestamp: ""
         },
-        postwatch: [],
         show_meta: false,
         media_view: {
             post: false,
@@ -114,7 +112,6 @@ const app = new Vue({
                 url: "search",
                 data: {
                     'username': app.inputs.username,
-                    'account': app.inputs.account,
                 },
                 success: function (data) {
                     stories = data;
