@@ -12,15 +12,10 @@ asyncio.set_event_loop_policy(EventLoopPolicy())
 pool = False
 
 async def main():
-    try:
-        configs = loads(getenv("config"))
-    except:
-        configs = load(open("config.json", "r"))
-    db = configs['database'] if 'database' in configs else None
-    db_host = db['host'] if 'host' in db else ""
-    db_user = db['user'] if 'user' in db else ""
-    db_pass = db['password'] if 'password' in db else ""
-    db_db = db['database'] if 'database' in db else ""
+    db_host = getenv('db_host')
+    db_user = getenv('db_user')
+    db_pass = getenv('db_pass')
+    db_db = getenv('db_db')
     try:
         pool = await aiomysql.create_pool(host=db_host, user=db_user, password=db_pass, db=db_db, port=3306, autocommit=True)
         print("Connected to database at {}@{}".format(db_user, db_host))
@@ -32,9 +27,9 @@ async def main():
         db = await conn.cursor()
         #for i in sql_queries:
         #    await db.execute(i)
-    if 'webserver_binds' in configs and len(configs['webserver_binds']) > 0:
+    if getenv('webserver'):
         from WebClient.WebClient import WebClient
-        coros = [(await WebClient(pool, i).init()) for i in configs['webserver_binds']]
+        coros = [(await WebClient(pool, getenv('webserver')).init())]
     else:
         coros = []
 
