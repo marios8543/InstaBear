@@ -88,14 +88,10 @@ class WebClient:
         async def search():
             v = await session(request)
             username = self.conn.escape((await request.form).get("username"))
-            account = self.conn.escape((await request.form).get("account"))
             c = 1
             sql="SELECT stories.uploaded,stories.id,users.name,users.current_pfp,stories.ext,stories.user_id,users.scrape_posts FROM stories INNER JOIN users ON stories.user_id = users.id WHERE users.account='{}'".format(v['token'].token)
             if username and len(username)>2:
                 sql = sql+" AND name={}".format(username) if c>0 else sql+"name={}".format(username)
-                c+=1
-            if account and len(account)>2:
-                sql = sql+" AND account={}".format(account) if c>0 else sql+"account={}".format(account)
                 c+=1
             async with self.lock:
                 await self.db.execute(sql)
