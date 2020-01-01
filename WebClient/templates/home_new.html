@@ -5,23 +5,38 @@
   <meta charset="utf-8">
   <title>InstaBear</title>
   <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
-  <link rel="stylesheet" href="https://tzatzikiweeb.moe/static/css/bootstrap.min.css">
-
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+  <style>
+    .imageView {
+      max-width: 100%;
+      max-height: 100%;
+      bottom: 0;
+      left: 0;
+      margin: auto;
+      overflow: auto;
+      position: absolute;
+      right: 0;
+      top: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+  </style>
 </head>
 
 <body>
-  <div class="container-fluid" id="mainWrap">
+  <div class="container-fluid" id="mainWrap" style="height:100vh;">
     <div v-if="current_view=='home'">
       <h1>
-      InstaBear
-      <div class="btn-group">
-        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-          {{ current_token }}
-        </button>
-        <div class="dropdown-menu">
-          <a v-for="token in tokens" class="dropdown-item" href="#" v-on:click="loadToken(token)">{{ token }}</a>
+        InstaBear
+        <div class="btn-group">
+          <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true"
+            aria-expanded="false">
+            {{ current_token }}
+          </button>
+          <div class="dropdown-menu">
+            <a v-for="token in tokens" class="dropdown-item" href="#" v-on:click="loadToken(token)">{{ token }}</a>
+          </div>
         </div>
-      </div>
       </h1>
       <h5>Bearing <span class="badge badge-pill badge-info">{{ story_count }}</span> stories and <span
           class="badge badge-pill badge-info">{{ post_count }}</span> posts from <span
@@ -90,7 +105,8 @@
                   <div class="form-group">
                     <label for="exampleInputEmail1">Username</label>
                     <input type="text" name="username" class="form-control" placeholder="Enter username">
-                    <a href="login_faq.txt" target="_blank"><small class="form-text text-muted">Will you hack me ?</small></a>
+                    <a href="login_faq.txt" target="_blank"><small class="form-text text-muted">Will you hack me
+                        ?</small></a>
                   </div>
                   <div class="form-group">
                     <label for="exampleInputPassword1">Password</label>
@@ -105,7 +121,7 @@
       </div>
     </div>
     <div id="media_view" v-else-if="current_view=='media_view'">
-      <span class="badge badge-pill badge-dark" style="float:left;" v-on:click="current_view='home'">Back</span>
+      <span class="badge badge-pill badge-dark" style="float:left; z-index:99; position: fixed;" v-on:click="current_view='home'">Back</span>
       <span v-on:click="toggleView()" class="badge badge-pill badge-dark"
         style="position: fixed; top: 0px; left: 135px; z-index: 99;">
         <span v-if="media_view.post">
@@ -115,10 +131,8 @@
           Stories {{ media_view.story_index+1 }} / {{ media_view.story_count }}
         </span>
       </span>
-      <div v-if="!media_view.is_video"
-        v-bind:style="'width:95vw; height: 95vh; background: url('+media_view.src+') no-repeat center fixed; background-size:contain;'">
-      </div>
-      <div v-else><video controls loop autoplay style="width:95vw; height: 95vh;" v-bind:src="media_view.src"></video>
+      <img id="mediaImage" v-show="!media_view.is_video" v-bind:src="media_view.src" class="imageView" draggable="false">
+      <div v-show="media_view.is_video"><video id="mediaVideo" controls loop autoplay style="width:95vw; height: 95vh;" v-bind:src="media_view.src"></video>
       </div>
       <span v-on:click="show_meta=true" class="badge badge-pill badge-dark"
         style="position: fixed; bottom: 0px; left: 135px;">
@@ -147,11 +161,11 @@
       </div>
     </div>
   </div>
-  <script src="https://tzatzikiweeb.moe/static/js/jquery-3.3.1.min.js"></script>
-  <script src="https://tzatzikiweeb.moe/static/js/vue.js"></script>
-  <script src="https://tzatzikiweeb.moe/static/js/hammer.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.6.11"></script>
+  <script src="https://hammerjs.github.io/dist/hammer.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
-  <script src="https://tzatzikiweeb.moe/static/js/bootstrap.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
   <script src="static/js/instabear_new.js"></script>
   <script>
     app.story_count = '%% story_count %%';
