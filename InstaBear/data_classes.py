@@ -13,22 +13,22 @@ class User:
         self.stories = []
 
     async def save_to_db(self,bear):
-        await bear.db.execute("SELECT name,current_pfp FROM users WHERE id=%s AND account=%s",(self.id,bear.username,))
-        res = await bear.db.fetchone()
+        res = await bear.db.select(table="users", fields=["name", "current_pfp"], params={"id":self.id, "account":bear.username})
         if not res:
-            await bear.db.execute("INSERT INTO users (id,name,current_pfp,account) values(%s,%s,%s,%s)",(self.id,self.name,self.picture,bear.username,))
+            await bear.db.insert(table="users", values={"id":self.id, "name":self.name, "current_pfp":self.picture, "account":bear.username})
         else:
-            if res[0]!=self.name or res[1]!=self.picture:
-                await bear.db.execute("UPDATE users SET name=%s,current_pfp=%s WHERE id=%s AND account=%s",(self.name,self.picture,self.id,bear.username,))
+            if res.name!=self.name or res.current_pfp!=self.picture:
+                await bear.db.update(table="users", values={"name":self.name, "current_pfp":self.picture}, params={"id":self.id, "account":bear.username})
+        
         pfp_id = self.picture.split("/")[4]
-        res = await bear.db.execute("SELECT id FROM profile_pictures WHERE id=%s",(pfp_id,))
+        res = await bear.db.select(table="profile_pictures", fields=["id"], params={"id": pfp_id})
         if not res:
             async with bear.client.get(self.picture) as img:
                 if img.status==200:
                     img = await img.read()
-                    await bear.db.execute("INSERT INTO profile_pictures(id,user_id,media) values(%s,%s,%s)",(pfp_id,self.id,img,))
+                    await bear.db.insert(table="profile_pictures", values={"id":pfp_id, "user_id":self.id, "media":img})
                 else:
-                    bear.warning("Profile picture link did not return 200 ({})".format(self.id))
+                    bear.log.warn("Profile picture link did not return 200 ({})".format(self.id))
 
 class Story:
     def __init__(self,data):
@@ -43,7 +43,7 @@ class Story:
             self.ext = 'jpg'
 
     async def check_exists(self,bear):
-        res = await bear.db.execute("SELECT 1 FROM stories WHERE id=%s",(self.id,))
+        res = await bear.db.select(table="stories", fields="1", params={"id":self.id})
         if res:
             return True
 
@@ -51,7 +51,13 @@ class Story:
         if not await self.check_exists(bear):
             async with bear.client.get(self.link) as res:
                 if res.status==200:
-                    if await bear.db.execute("INSERT INTO stories (id,uploaded,media,user_id,ext) values(%s,%s,%s,%s,%s)",(self.id,dt_to_unix(self.uploaded),await res.read(),user.id,self.ext,)):
+                    if await bear.db.insert(table="stories", values={
+                        "id":self.id,
+                        "uploaded":dt_to_unix(self.uploaded),
+                        "media":await res.read(),
+                        "user_id":user.id,
+                        "ext":self.ext
+                    }):
                         return 1
         return 0
 

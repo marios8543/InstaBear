@@ -1,12 +1,10 @@
-from json import load,loads
 import asyncio
 import aiomysql
 from aiomysql.cursors import DictCursor
-#from InstaBear.queries import sql_queries
 from uvloop import EventLoopPolicy
 from Token import tokens_list
 from os import getenv
-#from BackupTool.Backuper import Backuper
+from logging import getLogger
 
 asyncio.set_event_loop_policy(EventLoopPolicy())
 pool = False
@@ -25,8 +23,6 @@ async def main():
         exit(1)
     async with pool.acquire() as conn:
         db = await conn.cursor()
-        #for i in sql_queries:
-        #    await db.execute(i)
     if getenv('webserver'):
         from WebClient.WebClient import WebClient
         coros = [(await WebClient(pool, getenv('webserver')).init())]
@@ -34,7 +30,6 @@ async def main():
         coros = []
 
     from Token import Token
-#    backuper = Backuper("/home/marios/instabear_backups")
     async with pool.acquire() as conn:
         db = await conn.cursor(DictCursor)
         await db.execute("SELECT * FROM tokens")
