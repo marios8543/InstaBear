@@ -190,8 +190,7 @@ function loadMedia() {
 }
 
 // CONTROLS --------------------------------------------------------------
-
-const hamm = new Hammer(document.getElementById("mainWrap"));
+const hamm = new Hammer(document.getElementsByTagName("body")[0]);
 hamm.get('swipe').set({ direction: Hammer.DIRECTION_HORIZONTAL });
 
 function previous() {
